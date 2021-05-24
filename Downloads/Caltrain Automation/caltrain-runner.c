@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -8,8 +7,6 @@
 
 #include "caltrain.c"
 
-// Count of passenger threads that have completed (i.e. station_wait_for_train
-// has returned) and are awaiting a station_on_board() invocation.
 volatile int threads_completed = 0;
 
 void*
@@ -25,7 +22,7 @@ struct load_train_args {
 	struct station *station;
 	int free_seats;
 };
-
+// để biến có thể thay đổi mà không báo trước
 volatile int load_train_returned = 0;
 
 void*
@@ -39,7 +36,6 @@ load_train_thread(void *args)
 
 const char* alarm_error_str;
 int alarm_timeout;
-
 void
 _alarm(int seconds, const char *error_str)
 {
@@ -75,13 +71,13 @@ main()
 
 	signal(SIGALRM, alarm_handler);
 
-	// Make sure station_load_train() returns immediately if no waiting passengers.
+	// Đảm bảo rằng station_load_train () trả về ngay lập tức nếu không có hành khách nào đang chờ.
 	_alarm(1, "station_load_train() không trở lại ngay lập tức khi không có hành khách đợi");
 	station_load_train(&station, 0);
 	station_load_train(&station, 10);
 	_alarm(0, NULL);
 
-	// Create a bunch of 'passengers', each in their own thread.
+	// Tạo một nhóm 'hành khách', mỗi hành khách trong chuỗi riêng của họ
 	int i;
 	const int total_passengers = 1000;
 	int passengers_left = total_passengers;
@@ -89,8 +85,8 @@ main()
 		pthread_t tid;
 		int ret = pthread_create(&tid, NULL, passenger_thread, &station);
 		if (ret != 0) {
-			// If this fails, perhaps we exceeded some system limit.
-			// Try reducing 'total_passengers'.
+			// Nếu điều này không thành công,có lẽ đã vượt quá giới hạn hệ thống.
+			// Thử giảm 'total_passengers'.
 			perror("pthread_create");
 			exit(1);
 		}
@@ -122,7 +118,7 @@ main()
 		}
 
 		int threads_to_reap = MIN(passengers_left, free_seats);
-		printf("số chỗ trống dự kiến: %d, số hành khách dời đi dự kiến: %d\n",free_seats,passengers_left); //GIL
+		printf("số chỗ trống dự kiến: %d, số hành khách dời đi dự kiến: %d\n",free_seats,passengers_left); 
 		int threads_reaped = 0;
 		while (threads_reaped < threads_to_reap) {
 			if (load_train_returned) {
@@ -138,10 +134,10 @@ main()
 			}
 		}
 
-		// Wait a little bit longer. Give station_load_train() a chance to return
-		// and ensure that no additional passengers board the train. One second
-		// should be tons of time, but if you're on a horribly overloaded system,
-		// this may need to be tweaked.
+		// Chờ một chút nữa. Cho station_load_train () cơ hội quay lại
+		// và đảm bảo rằng không có thêm hành khách nào lên tàu. Một giây
+		// thời gian sẽ là hàng tấn, nhưng nếu bạn đang sử dụng một hệ thống quá tải khủng khiếp,
+		// điều này có thể cần được điều chỉnh.
 		for (i = 0; i < 1000; i++) {
 			if (i > 50 && load_train_returned)
 				break;
@@ -173,10 +169,10 @@ main()
 	}
 
 	if (total_passengers_boarded == total_passengers) {
-		printf("Looks good!\n");
+		printf("Finshed !\n");
 		return 0;
 	} else {
-		// I don't think this is reachable, but just in case.
+		// Điều này khó có thể xảy ra, nhưng đề phòng
 		fprintf(stderr, "Error: dự kiến %d tổng số hành khách lên tàu, nhưng chỉ có %d!\n",
 			total_passengers, total_passengers_boarded);
 		return 1;
